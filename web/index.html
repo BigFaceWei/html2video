@@ -208,6 +208,21 @@
     .row{flex-direction:column;gap:20px}
     .row>.field{margin-bottom:0}
   }
+  #historySec h2,#statsSec h2{color:var(--text)}
+  .hist-row{display:grid;grid-template-columns:1fr auto;gap:8px 16px;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--line-2)}
+  .hist-row:last-child{border-bottom:0}
+  .hist-meta{font-size:13px;color:var(--text-2)}
+  .hist-title{font-size:15px;font-weight:560}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:980px}
+  .badge.done{background:rgba(48,209,88,.15);color:#248a3d}
+  .badge.failed{background:rgba(255,69,58,.15);color:var(--danger)}
+  .badge.queued,.badge.running{background:rgba(0,113,227,.12);color:var(--accent)}
+  .hist-btn{font-size:13px;font-weight:560;color:var(--accent);text-decoration:none;cursor:pointer;
+    border:1px solid var(--line);border-radius:980px;padding:5px 12px}
+  .hist-btn:hover{background:rgba(0,113,227,.06)}
+  .hist-btn.danger{color:var(--danger)}
+  .hist-actions{display:flex;gap:8px}
 </style></head><body>
 <div class="wrap">
   <header>
@@ -269,6 +284,18 @@
   <div id="err"></div>
   <video id="preview" controls></video>
   <a id="download">下载视频</a>
+
+  <section id="historySec" class="card" style="margin-top:32px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0">转换历史</h2>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select id="histFilter"></select>
+        <a id="histZip" style="display:none" class="hist-btn">⤓ 打包下载</a>
+      </div>
+    </div>
+    <div id="histList"></div>
+  </section>
 </div>
 <script type="module" src="/app.js"></script>
+<script type="module" src="/history.js"></script>
 </body></html>
