@@ -1,4 +1,3 @@
-import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
@@ -33,6 +32,9 @@ export async function registerRoutes(app) {
   app.delete('/api/projects/:id', async (req, reply) => {
     const p = store.getProject(req.params.id);
     if (!p) return reply.code(404).send({ error: 'not found' });
+    const active = store.listJobs({ project_id: p.id, limit: 100000 })
+      .filter((j) => j.status !== 'done' && j.status !== 'failed');
+    if (active.length) return reply.code(409).send({ error: 'project has active jobs' });
     for (const j of store.listJobs({ project_id: p.id, limit: 100000 })) {
       try { await fsp.rm(path.join(DATA_DIR, j.id), { recursive: true, force: true }); } catch (_) {}
     }
@@ -53,9 +55,9 @@ export async function registerRoutes(app) {
       count++;
     }
     if (count === 0) return reply.code(404).send({ error: 'no videos' });
-    const safe = p.name.replace(/[^\w.\-]/g, '_');
+    const safe = (p.name.replace(/[/\\:*?"<>|]/g, '_').slice(0, 64) || 'project');
     reply.header('Content-Type', 'application/zip');
-    reply.header('Content-Disposition', `attachment; filename="${safe}.zip"`);
+    reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safe + '.zip')}`);
     return reply.send(zip.toBuffer());
   });
 
@@ -110,7 +112,7 @@ export async function registerRoutes(app) {
     if (mem) return { id: mem.id, status: mem.status, stage: mem.stage, progress: mem.progress, error: mem.error };
     const rec = store.getJob(req.params.id);
     if (!rec) return reply.code(404).send({ error: 'not found' });
-    return { id: rec.id, status: rec.status, stage: rec.status, progress: rec.status === 'done' ? 1 : 0, error: rec.error };
+    return { id: rec.id, status: rec.status, stage: null, progress: rec.status === 'done' ? 1 : 0, error: rec.error };
   });
 
   app.delete('/api/jobs/:id', async (req, reply) => {
@@ -128,7 +130,7 @@ export async function registerRoutes(app) {
       const rec = store.getJob(req.params.id);
       if (!rec) return reply.code(404).send({ error: 'not found' });
       reply.raw.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-      reply.raw.write(`data: ${JSON.stringify({ status: rec.status, stage: rec.status, progress: rec.status === 'done' ? 1 : 0, error: rec.error })}\n\n`);
+      reply.raw.write(`data: ${JSON.stringify({ status: rec.status, stage: null, progress: rec.status === 'done' ? 1 : 0, error: rec.error })}\n\n`);
       reply.raw.end();
       return;
     }
