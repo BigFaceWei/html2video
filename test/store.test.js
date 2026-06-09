@@ -26,3 +26,19 @@ test('listProjects 带 jobCount/doneCount', () => {
   assert.equal(list[0].doneCount, 1);
   s.close();
 });
+
+test('getJob 反序列化 params，listJobs 按 project 过滤倒序', () => {
+  const s = freshStore();
+  const p = s.createProject('p');
+  s.insertJob({ id: 'a', project_id: p.id, params: { codec: 'vp9', fps: 30 }, output_ext: 'webm' });
+  s.insertJob({ id: 'b', project_id: p.id, params: { codec: 'h264', fps: 24 }, output_ext: 'mp4' });
+  const job = s.getJob('a');
+  assert.equal(job.params.codec, 'vp9');     // params 已 JSON.parse
+  assert.equal(job.output_ext, 'webm');
+  assert.equal(job.status, 'queued');
+  const all = s.listJobs({ project_id: p.id });
+  assert.equal(all.length, 2);
+  assert.equal(all[0].id, 'b');              // created_at 倒序，后插的在前
+  assert.equal(s.getJob('missing'), null);
+  s.close();
+});

@@ -81,6 +81,22 @@ export function createStore(dbPath) {
         .run(msg, now(), id);
     },
 
+    getJob(id) {
+      const row = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+      return row ? { ...row, params: JSON.parse(row.params) } : null;
+    },
+    listJobs({ project_id, limit = 100, offset = 0 } = {}) {
+      const rows = project_id
+        ? db.prepare('SELECT * FROM jobs WHERE project_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?')
+            .all(project_id, limit, offset)
+        : db.prepare('SELECT * FROM jobs ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?')
+            .all(limit, offset);
+      return rows.map((r) => ({ ...r, params: JSON.parse(r.params) }));
+    },
+    deleteJob(id) {
+      db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
+    },
+
     close() { db.close(); },
   };
 }
