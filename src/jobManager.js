@@ -5,9 +5,11 @@ import crypto from 'node:crypto';
 
 export class JobManager {
   // deps.pipeline(job, report) — report(stage, fraction)
-  constructor({ baseDir, pipeline }) {
+  // deps.store — createStore(...) 返回的实例（可选；测试可不传）
+  constructor({ baseDir, pipeline, store = null }) {
     this.baseDir = baseDir;
     this.pipeline = pipeline;
+    this.store = store;
     this.jobs = new Map();
     this.queue = [];
     this.running = false;
@@ -15,17 +17,26 @@ export class JobManager {
     this.emitter.setMaxListeners(0);
   }
 
-  create(params, files) {
+  // meta: { projectId, sourceName }
+  create(params, files, meta = {}) {
     const id = crypto.randomUUID();
     const dir = path.join(this.baseDir, id);
     const ext = params && params.codec === 'vp9' ? 'webm' : 'mp4';
     const job = {
       id, params, files, dir,
+      projectId: meta.projectId || null,
       inputDir: path.join(dir, 'input'),
       output: path.join(dir, `output.${ext}`),
       status: 'queued', stage: 'queued', progress: 0, error: null,
     };
     this.jobs.set(id, job);
+    if (this.store && job.projectId) {
+      this.store.insertJob({
+        id, project_id: job.projectId, params,
+        source_name: meta.sourceName || null, output_ext: ext,
+        has_audio: !!(files && files.audio), has_subtitle: !!(files && files.subtitle),
+      });
+    }
     this.queue.push(id);
     this._drain();
     return id;
@@ -51,13 +62,22 @@ export class JobManager {
           job.stage = stage; job.progress = Math.max(0, Math.min(1, fraction)); this._emit(job);
         };
         await this.pipeline(job, report);
-        // 清理输入，保留 output.mp4 供下载
+        // 清理输入，保留 output 供下载
         try { await fs.rm(job.inputDir, { recursive: true, force: true }); } catch (_) {}
+        let size = null;
+        try { size = (await fs.stat(job.output)).size; } catch (_) {}
+        if (this.store && job.projectId) {
+          try { this.store.markDone(id, { size_bytes: size }); } catch (_) {}
+        }
         job.status = 'done'; job.stage = 'done'; job.progress = 1; this._emit(job);
       } catch (e) {
         // 失败时清理整个工作目录（无可用产物）
         try { await fs.rm(job.dir, { recursive: true, force: true }); } catch (_) {}
-        job.status = 'failed'; job.stage = 'failed'; job.error = String(e.message || e); this._emit(job);
+        const msg = String(e.message || e);
+        if (this.store && job.projectId) {
+          try { this.store.markFailed(id, msg); } catch (_) {}
+        }
+        job.status = 'failed'; job.stage = 'failed'; job.error = msg; this._emit(job);
       }
     }
     this.running = false;
