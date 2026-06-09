@@ -217,6 +217,15 @@
 
   <form id="form" class="card">
     <div class="field">
+      <label>Project（必选）</label>
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="margin-bottom:0"><select id="projectSel"></select></div>
+        <div class="field" style="margin-bottom:0;flex:0 0 auto">
+          <input type="text" id="newProject" placeholder="或输入新 project 名" style="min-width:180px">
+        </div>
+      </div>
+    </div>
+    <div class="field">
       <label>HTML 文件（单个 .html）或 ZIP 包（含 index.html）</label>
       <input type="file" id="source" accept=".html,.htm,.zip" required>
     </div>
@@ -261,5 +270,5 @@
   <video id="preview" controls></video>
   <a id="download">下载视频</a>
 </div>
-<script src="/app.js"></script>
+<script type="module" src="/app.js"></script>
 </body></html>
