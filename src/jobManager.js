@@ -29,7 +29,6 @@ export class JobManager {
       output: path.join(dir, `output.${ext}`),
       status: 'queued', stage: 'queued', progress: 0, error: null,
     };
-    this.jobs.set(id, job);
     if (this.store && job.projectId) {
       this.store.insertJob({
         id, project_id: job.projectId, params,
@@ -37,6 +36,7 @@ export class JobManager {
         has_audio: !!(files && files.audio), has_subtitle: !!(files && files.subtitle),
       });
     }
+    this.jobs.set(id, job);
     this.queue.push(id);
     this._drain();
     return id;
