@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0} #box{width:50px;height:50px;background:red;position:absolute;top:0}
+</style></head><body>
+<div id="box"></div>
+<script>
+  const box = document.getElementById('box');
+  function frame(t){ box.style.left = (t/10) + 'px'; requestAnimationFrame(frame); }
+  requestAnimationFrame(frame);
+</script></body></html>
