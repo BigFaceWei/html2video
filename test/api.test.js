@@ -1,10 +1,11 @@
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildServer } from '../server.js';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'h2v-test-'));
+after(() => { try { fs.rmSync(process.env.DATA_DIR, { recursive: true, force: true }); } catch (_) {} });
 
 test('e2e: upload html, poll done, download mp4', async () => {
   const app = buildServer();

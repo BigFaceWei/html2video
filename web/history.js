@@ -1,4 +1,4 @@
-import { $, api, el, fmtBytes, fmtTime } from './common.js';
+import { $, api, fmtBytes, fmtTime } from './common.js';
 
 const STATUS_CN = { done: '完成', failed: '失败', queued: '排队', running: '进行中' };
 

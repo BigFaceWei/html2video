@@ -118,6 +118,10 @@ export async function registerRoutes(app) {
   app.delete('/api/jobs/:id', async (req, reply) => {
     const rec = store.getJob(req.params.id);
     if (!rec) return reply.code(404).send({ error: 'not found' });
+    const mem = jm.get(rec.id);
+    if (mem && mem.status !== 'done' && mem.status !== 'failed') {
+      return reply.code(409).send({ error: 'job is active' });
+    }
     try { await fsp.rm(path.join(DATA_DIR, rec.id), { recursive: true, force: true }); } catch (_) {}
     store.deleteJob(rec.id);
     return { ok: true };
