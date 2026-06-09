@@ -124,7 +124,9 @@ export function createStore(dbPath) {
       `).all();
       const codecs = db.prepare(`
         SELECT project_id, json_extract(params, '$.codec') AS codec, COUNT(*) AS n
-        FROM jobs GROUP BY project_id, codec
+        FROM jobs
+        WHERE json_extract(params, '$.codec') IS NOT NULL
+        GROUP BY project_id, codec
       `).all();
       const map = {};
       for (const c of codecs) {
