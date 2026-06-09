@@ -38,13 +38,10 @@ export function createStore(dbPath) {
 
     // ---- projects ----
     createProject(name) {
-      const existing = db.prepare('SELECT * FROM projects WHERE name = ?').get(name);
-      if (existing) return existing;
       const id = crypto.randomUUID();
-      const created_at = now();
-      db.prepare('INSERT INTO projects (id, name, created_at) VALUES (?, ?, ?)')
-        .run(id, name, created_at);
-      return { id, name, created_at };
+      db.prepare('INSERT OR IGNORE INTO projects (id, name, created_at) VALUES (?, ?, ?)')
+        .run(id, name, now());
+      return db.prepare('SELECT * FROM projects WHERE name = ?').get(name);
     },
     getProject(id) {
       return db.prepare('SELECT * FROM projects WHERE id = ?').get(id) || null;
@@ -79,8 +76,9 @@ export function createStore(dbPath) {
         .run(size_bytes ?? null, now(), id);
     },
     markFailed(id, error) {
+      const msg = (error instanceof Error) ? error.message : String(error ?? '');
       db.prepare(`UPDATE jobs SET status='failed', error=?, finished_at=? WHERE id=?`)
-        .run(String(error ?? ''), now(), id);
+        .run(msg, now(), id);
     },
 
     close() { db.close(); },
