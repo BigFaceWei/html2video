@@ -97,6 +97,42 @@ export function createStore(dbPath) {
       db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
     },
 
+    statsByDate({ from, to } = {}) {
+      // created_at 为 epoch ms；/1000 转秒后用 unixepoch 取日期
+      return db.prepare(`
+        SELECT strftime('%Y-%m-%d', created_at/1000, 'unixepoch') AS day,
+          COUNT(*) AS total,
+          SUM(CASE WHEN status='done'   THEN 1 ELSE 0 END) AS done,
+          SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed,
+          COALESCE(SUM(size_bytes), 0) AS bytes
+        FROM jobs
+        WHERE (? IS NULL OR created_at >= ?) AND (? IS NULL OR created_at <= ?)
+        GROUP BY day
+        ORDER BY day
+      `).all(from ?? null, from ?? null, to ?? null, to ?? null);
+    },
+    statsByProject() {
+      const rows = db.prepare(`
+        SELECT p.id AS project_id, p.name AS name,
+          COUNT(j.id) AS total,
+          COALESCE(SUM(CASE WHEN j.status='done'   THEN 1 ELSE 0 END), 0) AS done,
+          COALESCE(SUM(CASE WHEN j.status='failed' THEN 1 ELSE 0 END), 0) AS failed,
+          COALESCE(SUM(j.size_bytes), 0) AS bytes
+        FROM projects p LEFT JOIN jobs j ON j.project_id = p.id
+        GROUP BY p.id
+        ORDER BY total DESC
+      `).all();
+      const codecs = db.prepare(`
+        SELECT project_id, json_extract(params, '$.codec') AS codec, COUNT(*) AS n
+        FROM jobs GROUP BY project_id, codec
+      `).all();
+      const map = {};
+      for (const c of codecs) {
+        (map[c.project_id] ??= {})[c.codec] = c.n;
+      }
+      return rows.map((r) => ({ ...r, codecBreakdown: map[r.project_id] || {} }));
+    },
+
     close() { db.close(); },
   };
 }

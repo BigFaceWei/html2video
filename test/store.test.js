@@ -42,3 +42,35 @@ test('getJob 反序列化 params，listJobs 按 project 过滤倒序', () => {
   assert.equal(s.getJob('missing'), null);
   s.close();
 });
+
+test('statsByProject 含成功失败计数、字节、codec 分布', () => {
+  const s = freshStore();
+  const p = s.createProject('proj');
+  s.insertJob({ id: 'x', project_id: p.id, params: { codec: 'h264' }, output_ext: 'mp4' });
+  s.insertJob({ id: 'y', project_id: p.id, params: { codec: 'vp9' }, output_ext: 'webm' });
+  s.markDone('x', { size_bytes: 500 });
+  s.markFailed('y', 'boom');
+  const st = s.statsByProject();
+  const row = st.find((r) => r.project_id === p.id);
+  assert.equal(row.total, 2);
+  assert.equal(row.done, 1);
+  assert.equal(row.failed, 1);
+  assert.equal(row.bytes, 500);
+  assert.equal(row.codecBreakdown.h264, 1);
+  assert.equal(row.codecBreakdown.vp9, 1);
+  s.close();
+});
+
+test('statsByDate 按天聚合', () => {
+  const s = freshStore();
+  const p = s.createProject('proj');
+  s.insertJob({ id: 'd1', project_id: p.id, params: { codec: 'h264' }, output_ext: 'mp4' });
+  s.markDone('d1', { size_bytes: 10 });
+  const rows = s.statsByDate();
+  assert.equal(rows.length, 1);
+  assert.match(rows[0].day, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(rows[0].total, 1);
+  assert.equal(rows[0].done, 1);
+  assert.equal(rows[0].bytes, 10);
+  s.close();
+});
