@@ -1,4 +1,4 @@
-import { $, api, fmtBytes, fmtTime } from './common.js';
+import { $, api, el, fmtBytes, fmtTime } from './common.js';
 
 const STATUS_CN = { done: '完成', failed: '失败', queued: '排队', running: '进行中' };
 
@@ -36,10 +36,18 @@ export async function renderHistory() {
     row.className = 'hist-row';
     const p = j.params || {};
     const left = document.createElement('div');
-    left.innerHTML =
-      `<div class="hist-title">${byId[j.project_id] || '—'} · ${(p.codec || '').toUpperCase()} `
-      + `<span class="badge ${j.status}">${STATUS_CN[j.status] || j.status}</span></div>`
-      + `<div class="hist-meta">${fmtTime(j.created_at)} · ${p.width}×${p.height} @${p.fps}fps · ${fmtBytes(j.size_bytes)}</div>`;
+    const title = document.createElement('div');
+    title.className = 'hist-title';
+    const titleText = document.createElement('span');
+    titleText.textContent = `${byId[j.project_id] || '—'} · ${(p.codec || '').toUpperCase()} `;
+    const badge = document.createElement('span');
+    badge.className = `badge ${j.status}`;
+    badge.textContent = STATUS_CN[j.status] || j.status;
+    title.append(titleText, badge);
+    const meta = document.createElement('div');
+    meta.className = 'hist-meta';
+    meta.textContent = `${fmtTime(j.created_at)} · ${p.width}×${p.height} @${p.fps}fps · ${fmtBytes(j.size_bytes)}`;
+    left.append(title, meta);
     const actions = document.createElement('div');
     actions.className = 'hist-actions';
     if (j.status === 'done') {
