@@ -56,3 +56,15 @@ test('setInterval reschedules across goToTime', () => {
   tc.goToTime(35);
   assert.equal(count, 3); // 10,20,30
 });
+
+test('zero-delay setTimeout chain does not infinite-loop; advances one per frame', () => {
+  const g = makeGlobal();
+  const tc = installTimeControl(g);
+  let calls = 0;
+  function loop() { calls++; g.setTimeout(loop, 0); }
+  g.setTimeout(loop, 0);
+  tc.goToTime(0);   // must return (no hang); fires the initial timer once
+  assert.equal(calls, 1);
+  tc.goToTime(16);  // next frame fires the chained timer once more
+  assert.equal(calls, 2);
+});

@@ -39,15 +39,16 @@ export function installTimeControl(g) {
   g.clearInterval = (id) => { timers.delete(id); };
 
   function fireDueTimers(target) {
+    const eligible = new Set(timers.keys());
     while (true) {
       let pick = null;
       for (const [id, t] of timers) {
-        if (t.time <= target && (pick === null || t.time < pick.t.time)) pick = { id, t };
+        if (eligible.has(id) && t.time <= target && (pick === null || t.time < pick.t.time)) pick = { id, t };
       }
       if (!pick) break;
       virtualNow = pick.t.time;
       if (pick.t.interval !== null) pick.t.time = virtualNow + pick.t.interval;
-      else timers.delete(pick.id);
+      else { timers.delete(pick.id); eligible.delete(pick.id); }
       pick.t.cb(...pick.t.args);
     }
   }
