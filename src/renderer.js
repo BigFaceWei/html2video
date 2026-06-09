@@ -23,7 +23,10 @@ export async function renderFrames(opts) {
       // 真实合成不再自动触发页面 rAF，所以不能用 page rAF 等待（会挂起）。
       // 改用 Playwright 的真实时钟等待，让浏览器完成一次真实合成后再截图。
       await page.waitForTimeout(0);
-      const buf = await page.screenshot({ type: 'png' });
+      const buf = await Promise.race([
+        page.screenshot({ type: 'png' }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('screenshot timeout')), 30000)),
+      ]);
       await onFrame(buf, i);
       if (onProgress) onProgress(i + 1, totalFrames);
     }

@@ -22,15 +22,40 @@ export function makePipeline() {
       output: job.output, width: p.width, height: p.height, fps: p.fps,
       codec: p.codec, crf: p.crf, audioPath, subtitlePath, subtitleMode: p.subtitleMode,
     });
+    // 若 ffmpeg 中途退出（非 0），中止渲染，避免向死管道写入而永久挂起。
+    const controller = new AbortController();
+    enc.proc.on('close', (code) => { if (code !== 0) controller.abort(); });
+
+    const writeFrame = (buf) => {
+      if (enc.stdin.write(buf)) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          enc.stdin.off('drain', onDrain);
+          controller.signal.removeEventListener('abort', onAbort);
+        };
+        const onDrain = () => { cleanup(); resolve(); };
+        const onAbort = () => { cleanup(); reject(new Error('encoder aborted')); };
+        enc.stdin.once('drain', onDrain);
+        controller.signal.addEventListener('abort', onAbort, { once: true });
+      });
+    };
+
     try {
       await renderFrames({
         url: srv.url + '/index.html', width: p.width, height: p.height, fps: p.fps, durationSec: p.durationSec,
-        onFrame: async (buf) => { if (!enc.stdin.write(buf)) await new Promise(r => enc.stdin.once('drain', r)); },
+        signal: controller.signal,
+        onFrame: async (buf) => { await writeFrame(buf); },
         onProgress: (done, total) => report('rendering', done / total),
       });
       enc.stdin.end();
       report('encoding', 0.99);
       await enc.done;
+    } catch (e) {
+      try { enc.stdin.destroy(); } catch (_) {}
+      // 优先抛出 ffmpeg 的真实错误（若有），否则抛渲染错误。
+      let ffErr = null;
+      await enc.done.catch((err) => { ffErr = err; });
+      throw ffErr || e;
     } finally {
       await srv.close();
     }

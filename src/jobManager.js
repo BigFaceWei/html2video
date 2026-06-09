@@ -50,6 +50,8 @@ export class JobManager {
           job.stage = stage; job.progress = Math.max(0, Math.min(1, fraction)); this._emit(job);
         };
         await this.pipeline(job, report);
+        // 清理输入，保留 output.mp4 供下载
+        try { await fs.rm(job.inputDir, { recursive: true, force: true }); } catch (_) {}
         job.status = 'done'; job.stage = 'done'; job.progress = 1; this._emit(job);
       } catch (e) {
         job.status = 'failed'; job.stage = 'failed'; job.error = String(e.message || e); this._emit(job);
