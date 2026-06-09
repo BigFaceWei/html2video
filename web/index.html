@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HTML → MP4 转换器</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:680px;margin:2rem auto;padding:0 1rem}
+  label{display:block;margin:.6rem 0 .2rem;font-weight:600}
+  input,select{width:100%;padding:.4rem;box-sizing:border-box}
+  .row{display:flex;gap:1rem}.row>div{flex:1}
+  button{margin-top:1rem;padding:.6rem 1.2rem;font-size:1rem}
+  #bar{height:18px;background:#eee;border-radius:9px;overflow:hidden;margin-top:1rem;display:none}
+  #fill{height:100%;width:0;background:#3b82f6;transition:width .2s}
+  #stage{color:#555;margin-top:.4rem}
+  #err{color:#c00;white-space:pre-wrap;margin-top:1rem}
+  video{width:100%;margin-top:1rem;display:none}
+</style></head><body>
+<h1>HTML → MP4 转换器</h1>
+<form id="form">
+  <label>HTML 文件（单个 .html）或 ZIP 包（含 index.html）</label>
+  <input type="file" id="source" accept=".html,.htm,.zip" required>
+  <div class="row">
+    <div><label>宽</label><input type="number" id="width" value="1920"></div>
+    <div><label>高</label><input type="number" id="height" value="1080"></div>
+  </div>
+  <div class="row">
+    <div><label>帧率</label><select id="fps"><option>24</option><option selected>30</option><option>60</option></select></div>
+    <div><label>时长（秒）</label><input type="number" id="durationSec" value="5" step="0.1"></div>
+  </div>
+  <div class="row">
+    <div><label>编码</label><select id="codec"><option value="h264" selected>H.264</option><option value="h265">H.265</option><option value="vp9">VP9</option></select></div>
+    <div><label>质量 CRF（小=清晰）</label><input type="number" id="crf" value="20" min="0" max="51"></div>
+  </div>
+  <label>音频（可选 mp3/aac/wav）</label>
+  <input type="file" id="audio" accept="audio/*">
+  <label>字幕（可选 srt/vtt）</label>
+  <input type="file" id="subtitle" accept=".srt,.vtt">
+  <label>字幕模式</label>
+  <select id="subtitleMode"><option value="burn" selected>烧录(硬字幕)</option><option value="soft">软字幕(可开关)</option></select>
+  <button type="submit">开始转换</button>
+</form>
+<div id="bar"><div id="fill"></div></div>
+<div id="stage"></div>
+<div id="err"></div>
+<video id="preview" controls></video>
+<a id="download" style="display:none">下载视频</a>
+<script src="/app.js"></script>
+</body></html>
