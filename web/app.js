@@ -27,8 +27,9 @@ $('form').addEventListener('submit', async (e) => {
     if (ev.status === 'done') {
       es.close();
       const url = `/api/jobs/${id}/video`;
+      const ext = $('codec').value === 'vp9' ? 'webm' : 'mp4';
       $('preview').src = url; $('preview').style.display = 'block';
-      $('download').href = url; $('download').download = 'output.mp4';
+      $('download').href = url; $('download').download = 'output.' + ext;
       $('download').textContent = '下载视频'; $('download').style.display = 'inline-block';
     }
   };

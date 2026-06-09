@@ -26,6 +26,18 @@ test('e2e: upload html, poll done, download mp4', async () => {
     const vid = await fetch(`${base}/api/jobs/${id}/video`);
     assert.equal(vid.status, 200);
     assert.equal(vid.headers.get('content-type'), 'video/mp4');
+    assert.equal(vid.headers.get('accept-ranges'), 'bytes');
+
+    // Range 请求返回 206 + Content-Range（<video> 拖动定位依赖）
+    const part = await fetch(`${base}/api/jobs/${id}/video`, { headers: { Range: 'bytes=0-9' } });
+    assert.equal(part.status, 206);
+    assert.match(part.headers.get('content-range'), /^bytes 0-9\//);
+    assert.equal(part.headers.get('content-length'), '10');
+
+    // 任务已终态时连接 SSE：发完快照即结束，不挂起连接
+    const sse = await fetch(`${base}/api/jobs/${id}/progress`);
+    const body = await sse.text(); // 必须能读到结束（流被服务端关闭）
+    assert.match(body, /"status":"done"/);
   } finally {
     await app.close();
   }

@@ -18,10 +18,11 @@ export class JobManager {
   create(params, files) {
     const id = crypto.randomUUID();
     const dir = path.join(this.baseDir, id);
+    const ext = params && params.codec === 'vp9' ? 'webm' : 'mp4';
     const job = {
       id, params, files, dir,
       inputDir: path.join(dir, 'input'),
-      output: path.join(dir, 'output.mp4'),
+      output: path.join(dir, `output.${ext}`),
       status: 'queued', stage: 'queued', progress: 0, error: null,
     };
     this.jobs.set(id, job);
@@ -54,6 +55,8 @@ export class JobManager {
         try { await fs.rm(job.inputDir, { recursive: true, force: true }); } catch (_) {}
         job.status = 'done'; job.stage = 'done'; job.progress = 1; this._emit(job);
       } catch (e) {
+        // 失败时清理整个工作目录（无可用产物）
+        try { await fs.rm(job.dir, { recursive: true, force: true }); } catch (_) {}
         job.status = 'failed'; job.stage = 'failed'; job.error = String(e.message || e); this._emit(job);
       }
     }
