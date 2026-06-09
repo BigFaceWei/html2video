@@ -8,6 +8,8 @@ export function installTimeControl(g) {
   let rafQueue = new Map();      // id -> cb
 
   const RealDate = g.Date;
+  // VirtualDate 构造时显式 return 一个 RealDate 实例（覆盖 this）；因 prototype 与
+  // RealDate 共享，instanceof / 实例方法均正确。无参 → 虚拟时刻；有参 → 透传。
   function VirtualDate(...args) {
     if (!(this instanceof VirtualDate)) return new RealDate(virtualNow).toString();
     if (args.length === 0) return new RealDate(virtualNow);
@@ -39,9 +41,11 @@ export function installTimeControl(g) {
   g.clearInterval = (id) => { timers.delete(id); };
 
   function fireDueTimers(target) {
+    // 仅触发 drain 开始时已存在的定时器；回调中新建的留到下一帧（防 0 延迟自链死循环）。
     const eligible = new Set(timers.keys());
     while (true) {
       let pick = null;
+      // 取最早到期者；同一 time 用严格 < 比较，故按 Map 插入顺序（先注册先触发）。
       for (const [id, t] of timers) {
         if (eligible.has(id) && t.time <= target && (pick === null || t.time < pick.t.time)) pick = { id, t };
       }
@@ -53,6 +57,7 @@ export function installTimeControl(g) {
     }
   }
 
+  // 前置条件：ms 单调不减（逐帧步进总是向前）。回退会导致已过定时器再次到期。
   function goToTime(ms) {
     fireDueTimers(ms);
     virtualNow = ms;
