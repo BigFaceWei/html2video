@@ -295,7 +295,19 @@
     </div>
     <div id="histList"></div>
   </section>
+
+  <section id="statsSec" class="card" style="margin-top:32px">
+    <h2 style="font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0 0 20px">统计</h2>
+    <h3 style="font-size:15px;color:var(--text-2);margin:0 0 8px">按日期</h3>
+    <canvas id="chartDate" height="120"></canvas>
+    <h3 style="font-size:15px;color:var(--text-2);margin:24px 0 8px">按 Project（转换数）</h3>
+    <canvas id="chartProject" height="120"></canvas>
+    <h3 style="font-size:15px;color:var(--text-2);margin:24px 0 8px">编码分布</h3>
+    <canvas id="chartCodec" height="120"></canvas>
+  </section>
 </div>
+<script src="/vendor/chart.umd.min.js"></script>
 <script type="module" src="/app.js"></script>
 <script type="module" src="/history.js"></script>
+<script type="module" src="/stats.js"></script>
 </body></html>
