@@ -11,7 +11,7 @@ Web 工具：把自动播放的 HTML 页面**确定性逐帧**渲染成 MP4/WebM
 ```bash
 npm install
 npx playwright install chromium        # 首次必跑，渲染依赖 Chromium
-npm start                              # http://127.0.0.1:3000；PORT=8080 npm start 改端口
+npm start                              # 127.0.0.1 + LAN IP；PORT=8080 npm start 改端口
 npm test                              # 全套：node --test
 node --test test/timeControl.test.js  # 单文件
 node --test --test-timeout=120000 test/api.test.js   # 浏览器/ffmpeg 集成测试需长超时
@@ -56,7 +56,7 @@ HTTP 上传 → routes → store.insertJob(queued) → JobManager(串行队列) 
 - **ffmpeg 中途死亡的中止**：`pipeline.js` 用 AbortController，ffmpeg 非 0 退出时 abort 渲染并唤醒背压等待，避免向死管道写入永久挂起。catch 优先抛 ffmpeg 真实错误。
 - **VP9 → `.webm` 容器**：`jobManager` 按 `params.codec` 决定输出扩展名（vp9→webm，否则 mp4）；`/video` 路由据扩展名设 content-type。
 - **编码归一化**：encoder 始终套 `scale=W:H,format=yuv420p`，保证偶数尺寸与最大兼容；输入帧任意尺寸都可。
-- **本地单机定位**：服务只绑 `127.0.0.1`，无鉴权/多租户/沙箱。勿按公网假设加复杂度。
+- **LAN 访问**：服务绑 `0.0.0.0`，启动时打印 127.0.0.1 与自动探测的 LAN IP。无鉴权/多租户/沙箱，勿按公网假设加复杂度。
 - **产物持久在 `DATA_DIR`（默认 `./data`，env 可覆盖）**：不再用 tmpdir。`/video` 路由查 store 取产物路径，重启后历史仍可下载——勿改回依赖内存 Map。
 - **project 必填**：`POST /api/jobs` 须带存在的 `projectId`，否则 400。`jobs.project_id NOT NULL`，删 project 级联删 jobs 行（产物文件由路由另删）。
 - **保留策略**：产物不自动清理，仅手动删除接口。`RETENTION_MAX` 为预留 TODO，未实现自动清理——加自动清理前先确认需求。
